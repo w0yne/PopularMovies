@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ Created by Stev Wayne on 2016/12/7
+  ~ Copyright (c) 2016 Stev Wayne. All rights reserved.
+  -->
+
+<resources>
+    <dimen name="movie_poster_size">342px</dimen>
+</resources>

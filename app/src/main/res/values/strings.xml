@@ -3,10 +3,15 @@
 
     <string name="most_popular">Most Popular</string>
     <string name="top_rated">Top Rated</string>
+    <string name="favorites">Favorites</string>
 
     <string name="movie_detail">Movie Detail</string>
     <string name="movie_poster_description">Movie Poster</string>
 
     <string name="format_time_min">%d min</string>
     <string name="format_rating">%s/10</string>
+
+    <string name="trailers">Trailers</string>
+    <string name="reviews">Reviews</string>
+    <string name="favorite_movie_description">Favorite this movie</string>
 </resources>

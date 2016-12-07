@@ -25,6 +25,11 @@
         </activity>
         <activity android:name=".ui.MovieDetailActivity"
             android:configChanges="orientation|keyboardHidden|screenSize"/>
+
+        <provider
+            android:authorities="com.w0yne.nanodegree.popularmovies.data.MovieProvider"
+            android:name="com.w0yne.nanodegree.popularmovies.data.generated.MovieProvider"
+            android:exported="false"/>
     </application>
 
 </manifest>

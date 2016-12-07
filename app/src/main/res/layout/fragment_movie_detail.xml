@@ -4,7 +4,9 @@
   ~ Copyright (c) 2016 Stev Wayne. All rights reserved.
   -->
 
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<android.support.v4.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
@@ -30,8 +32,9 @@
                 android:minHeight="120dp"
                 android:paddingEnd="16dp"
                 android:paddingStart="16dp"
-                android:textSize="24sp"
-                android:textStyle="bold" />
+                android:textAppearance="?android:textAppearanceLarge"
+                android:textStyle="bold"
+                tools:text="The Dark Knight Returns" />
         </android.support.design.widget.AppBarLayout>
 
         <LinearLayout
@@ -41,7 +44,7 @@
 
             <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="180dp"
+                android:layout_height="@dimen/height_movie_info"
                 android:orientation="horizontal">
 
                 <ImageView
@@ -50,7 +53,8 @@
                     android:layout_height="match_parent"
                     android:layout_weight="2"
                     android:contentDescription="@string/movie_poster_description"
-                    android:padding="16dp" />
+                    android:padding="16dp"
+                    tools:src="@color/colorPrimary" />
 
                 <LinearLayout
                     android:layout_width="0dp"
@@ -63,21 +67,35 @@
                         android:id="@+id/movie_release_year"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:textSize="18sp" />
+                        android:textAppearance="?android:textAppearanceMedium"
+                        tools:text="2008" />
 
                     <TextView
                         android:id="@+id/movie_length"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:textSize="16sp"
-                        android:textStyle="bold|italic" />
+                        android:textAppearance="?android:textAppearanceSmall"
+                        android:textStyle="bold|italic"
+                        tools:text="120min" />
 
                     <TextView
                         android:id="@+id/movie_rating"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:textSize="14sp"
-                        android:textStyle="bold" />
+                        android:textAppearance="?android:textAppearanceSmall"
+                        android:textStyle="bold"
+                        tools:text="9/10" />
+
+                    <ImageButton
+                        android:id="@+id/movie_favorite"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:contentDescription="@string/favorite_movie_description"
+                        android:padding="8dp"
+                        android:scaleType="centerInside"
+                        android:tint="@android:color/holo_orange_light"
+                        style="@android:style/Widget.DeviceDefault.Button.Borderless"
+                        android:src="@drawable/ic_favorite_border_black_24dp" />
                 </LinearLayout>
             </LinearLayout>
 
@@ -85,7 +103,33 @@
                 android:id="@+id/movie_overview"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:padding="16dp" />
+                android:padding="16dp"
+                tools:text="The quick brown fox jumped over the lazy dog." />
         </LinearLayout>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="16dp"
+            android:text="@string/trailers"
+            android:textAppearance="?android:textAppearanceMedium" />
+
+        <android.support.v7.widget.RecyclerView
+            android:id="@+id/movie_trailers"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:layout_behavior="@string/appbar_scrolling_view_behavior" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:padding="16dp"
+            android:text="@string/reviews"
+            android:textAppearance="?android:textAppearanceMedium" />
+
+        <android.support.v7.widget.RecyclerView
+            android:id="@+id/movie_reviews"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
     </LinearLayout>
-</ScrollView>
+</android.support.v4.widget.NestedScrollView>

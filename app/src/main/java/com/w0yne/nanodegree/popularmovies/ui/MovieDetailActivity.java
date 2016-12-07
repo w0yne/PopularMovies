@@ -11,6 +11,7 @@ import android.support.v7.app.ActionBar;
 import android.view.MenuItem;
 
 import com.w0yne.nanodegree.popularmovies.R;
+import com.w0yne.nanodegree.popularmovies.model.Movie;
 
 public class MovieDetailActivity extends BaseActivity {
 
@@ -21,10 +22,10 @@ public class MovieDetailActivity extends BaseActivity {
         setTitle(R.string.movie_detail);
         setUpActionBar();
 
-        int movieId = getIntent().getIntExtra(MovieDetailFragment.MOVIE_ID, 0);
-        if (movieId != 0) {
+        Movie movie = getIntent().getParcelableExtra(MovieDetailFragment.KEY_MOVIE);
+        if (movie != null) {
             getFragmentManager().beginTransaction()
-                    .replace(R.id.content_frame, MovieDetailFragment.createInstance(movieId))
+                    .replace(R.id.list_frame, MovieDetailFragment.createInstance(movie))
                     .commit();
         }
     }

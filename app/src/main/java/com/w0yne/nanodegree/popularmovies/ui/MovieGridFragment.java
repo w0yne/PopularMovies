@@ -5,9 +5,14 @@
 
 package com.w0yne.nanodegree.popularmovies.ui;
 
-import android.content.Intent;
-import android.content.res.Configuration;
+import android.app.Activity;
+import android.app.LoaderManager;
+import android.content.ContentResolver;
+import android.content.CursorLoader;
+import android.content.Loader;
+import android.database.Cursor;
 import android.os.Bundle;
+import android.support.annotation.IntDef;
 import android.support.annotation.Nullable;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -19,26 +24,58 @@ import android.widget.AdapterView;
 import android.widget.GridView;
 
 import com.w0yne.nanodegree.popularmovies.R;
+import com.w0yne.nanodegree.popularmovies.data.MovieColumns;
+import com.w0yne.nanodegree.popularmovies.data.MovieProvider;
+import com.w0yne.nanodegree.popularmovies.model.ModelList;
 import com.w0yne.nanodegree.popularmovies.model.Movie;
-import com.w0yne.nanodegree.popularmovies.model.MovieList;
 import com.w0yne.nanodegree.popularmovies.net.NetworkEngine;
 import com.w0yne.nanodegree.popularmovies.net.ResponseListener;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 
 import butterknife.BindView;
 
-public class MovieGridFragment extends BaseFragment {
+public class MovieGridFragment extends BaseFragment implements LoaderManager.LoaderCallbacks<Cursor> {
+
+    private static final int LOADER_ID = 0;
+
+    private static final String SAVED_SORT_ORDER = "SAVED_SORT_ORDER";
+    private static final String SAVED_DISPLAY_TYPE = "SAVED_DISPLAY_TYPE";
+    private static final String SAVED_POSITION = "SAVED_POSITION";
 
     @BindView(R.id.movie_grid)
     GridView mMovieGridView;
 
-    private List<Movie> mMovies;
-    private MovieGridAdapter mMoviesAdapter;
+    private MovieCursorAdapter mMoviesAdapter;
+    private String mSortOrder;
+    private int mCurrentDisplayType;
+    private OnClickedMovieListener mOnClickedMovieListener;
 
-    enum SortType {
-        POPULAR, TOP_RATED
+    @Retention(RetentionPolicy.SOURCE)
+    @IntDef({
+            SORT_TYPE_POPULAR,
+            SORT_TYPE_TOP_RATED,
+            FILTER_FAVORITE
+    })
+    @interface DisplayType {}
+
+    public static final int SORT_TYPE_POPULAR = 0;
+    public static final int SORT_TYPE_TOP_RATED = 1;
+    public static final int FILTER_FAVORITE = 2;
+
+    public interface OnClickedMovieListener {
+
+        void onMovieClicked(Movie movie);
+    }
+
+    @SuppressWarnings("deprecation")
+    @Override
+    public void onAttach(Activity activity) {
+        super.onAttach(activity);
+        if (activity instanceof OnClickedMovieListener) {
+            this.mOnClickedMovieListener = (OnClickedMovieListener) activity;
+        }
     }
 
     @Override
@@ -55,18 +92,27 @@ public class MovieGridFragment extends BaseFragment {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
-            case R.id.most_popular:{
+            case R.id.most_popular: {
                 if (!item.isChecked()) {
                     item.setChecked(true);
-                    getMoviesFromServer(SortType.POPULAR);
+                    getMoviesFromServer(SORT_TYPE_POPULAR);
                 }
-                return true;}
-            case R.id.top_rated:{
+                return true;
+            }
+            case R.id.top_rated: {
                 if (!item.isChecked()) {
                     item.setChecked(true);
-                    getMoviesFromServer(SortType.TOP_RATED);
+                    getMoviesFromServer(SORT_TYPE_TOP_RATED);
                 }
-                return true;}
+                return true;
+            }
+            case R.id.favorite: {
+                if (!item.isChecked()) {
+                    item.setChecked(true);
+                    mCurrentDisplayType = FILTER_FAVORITE;
+                    getLoaderManager().restartLoader(LOADER_ID, null, this);
+                }
+            }
         }
         return super.onOptionsItemSelected(item);
     }
@@ -78,47 +124,104 @@ public class MovieGridFragment extends BaseFragment {
     }
 
     @Override
-    public void onViewCreated(View view, Bundle savedInstanceState) {
+    public void onViewCreated(final View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        if (savedInstanceState == null) {
-            mMovies = new ArrayList<>();
-            mMoviesAdapter = new MovieGridAdapter(getActivity(), mMovies);
-            mMovieGridView.setAdapter(mMoviesAdapter);
-            mMovieGridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-                @Override
-                public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                    Movie clickedMovie = mMoviesAdapter.getItem(position);
-                    startActivity(new Intent(getActivity(), MovieDetailActivity.class)
-                            .putExtra(MovieDetailFragment.MOVIE_ID, clickedMovie.id));
+
+        mMoviesAdapter = new MovieCursorAdapter(getActivity(), null);
+        mMovieGridView.setAdapter(mMoviesAdapter);
+        mMovieGridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                if (mOnClickedMovieListener != null) {
+                    Cursor cursor = (Cursor) parent.getItemAtPosition(position);
+                    Movie clickedMovie = Movie.getMovie(cursor);
+                    mOnClickedMovieListener.onMovieClicked(clickedMovie);
                 }
-            });
-        }
+            }
+        });
+        view.post(new Runnable() {
+            @Override
+            public void run() {
+                int columnWidth = Math.min(view.getWidth(), view.getHeight()) / 2;
+                mMovieGridView.setColumnWidth(columnWidth);
+                mMoviesAdapter.setColumnWidth(columnWidth);
+            }
+        });
     }
 
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
         if (savedInstanceState == null) {
-            getMoviesFromServer(SortType.POPULAR);
+            mCurrentDisplayType = SORT_TYPE_POPULAR;
+            getMoviesFromServer(SORT_TYPE_POPULAR);
+            getLoaderManager().initLoader(LOADER_ID, null, this);
+        } else {
+            mSortOrder = savedInstanceState.getString(SAVED_SORT_ORDER);
+            mCurrentDisplayType = savedInstanceState.getInt(SAVED_DISPLAY_TYPE);
+            mMovieGridView.smoothScrollToPosition(savedInstanceState.getInt(SAVED_POSITION));
         }
     }
 
     @Override
-    public void onConfigurationChanged(Configuration newConfig) {
-        super.onConfigurationChanged(newConfig);
-        if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE) {
-            mMovieGridView.setNumColumns(3);
-        } else if (newConfig.orientation == Configuration.ORIENTATION_PORTRAIT) {
-            mMovieGridView.setNumColumns(2);
+    public void onSaveInstanceState(Bundle outState) {
+        if (outState != null) {
+            outState.putString(SAVED_SORT_ORDER, mSortOrder);
+            outState.putInt(SAVED_DISPLAY_TYPE, mCurrentDisplayType);
+            outState.putInt(SAVED_POSITION, mMovieGridView.getLastVisiblePosition());
         }
+        super.onSaveInstanceState(outState);
     }
 
-    private void getMoviesFromServer(SortType sortType) {
-        ResponseListener<MovieList> movieListResponseListener = new ResponseListener<MovieList>() {
+    @Override
+    public Loader<Cursor> onCreateLoader(int id, Bundle args) {
+        String sortOrder = null;
+        String selection = null;
+        if (mCurrentDisplayType == FILTER_FAVORITE) {
+            selection = MovieColumns.FAVORITE + " = 1";
+        } else {
+            sortOrder = mSortOrder;
+        }
+        return new CursorLoader(getActivity(),
+                MovieProvider.Movies.CONTENT_URI,
+                MovieProvider.Movies.DEFAULT_PROJECTION,
+                selection, null, sortOrder);
+    }
+
+    @Override
+    public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
+        mMoviesAdapter.swapCursor(data);
+    }
+
+    @Override
+    public void onLoaderReset(Loader<Cursor> loader) {
+        mMoviesAdapter.swapCursor(null);
+    }
+
+    private void getMoviesFromServer(@DisplayType int sortType) {
+        mCurrentDisplayType = sortType;
+        ResponseListener<ModelList<Movie>> movieListResponseListener = new ResponseListener<ModelList<Movie>>() {
             @Override
-            public void onSuccess(MovieList data) {
-                mMoviesAdapter.clear();
-                mMoviesAdapter.addAll(data.movies);
+            public void onSuccess(ModelList<Movie> data) {
+                if (isAdded()) {
+                    ContentResolver contentResolver = getActivity().getContentResolver();
+                    for (Movie movie : data.items) {
+                        Cursor cursor = contentResolver.query(MovieProvider.Movies.withId(movie.id), new String[]{MovieColumns.ID, MovieColumns.FAVORITE}, null, null, null);
+                        if (cursor != null) {
+                            try {
+                                if (cursor.moveToFirst()) {
+                                    movie.setFavorite(cursor.getInt(cursor.getColumnIndex(MovieColumns.FAVORITE)) != 0);
+                                    contentResolver.update(MovieProvider.Movies.withId(movie.id), Movie.getContentValues(movie)
+                                            , null, null);
+                                } else {
+                                    contentResolver.insert(MovieProvider.Movies.CONTENT_URI, Movie.getContentValues(movie));
+                                }
+                            } finally {
+                                cursor.close();
+                            }
+                        }
+                    }
+                }
             }
 
             @Override
@@ -127,11 +230,17 @@ public class MovieGridFragment extends BaseFragment {
             }
         };
         switch (sortType) {
-            case POPULAR:
+            case SORT_TYPE_POPULAR:
+                mSortOrder = MovieColumns.POPULARITY + " desc";
+                getLoaderManager().restartLoader(LOADER_ID, null, this);
                 NetworkEngine.getPopularMovies(movieListResponseListener);
                 break;
-            case TOP_RATED:
+            case SORT_TYPE_TOP_RATED:
+                mSortOrder = MovieColumns.VOTE_AVERAGE + " desc";
+                getLoaderManager().restartLoader(LOADER_ID, null, this);
                 NetworkEngine.getTopRatedMovies(movieListResponseListener);
+                break;
+            default:
                 break;
         }
     }

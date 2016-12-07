@@ -33,38 +33,31 @@ public class MovieGridAdapter extends ArrayAdapter<Movie> {
     public View getView(int position, View convertView, @NonNull ViewGroup parent) {
         Movie movie = getItem(position);
 
+        ViewHolder viewHolder;
         if (convertView == null) {
             convertView = LayoutInflater.from(getContext()).inflate(R.layout.movie_grid_item, parent, false);
+            viewHolder = new ViewHolder();
+            viewHolder.moviePoster = (ImageView) convertView.findViewById(R.id.movie_poster);
+            convertView.setTag(viewHolder);
+        } else {
+            viewHolder = (ViewHolder) convertView.getTag();
         }
 
-        ImageView moviePoster = (ImageView) convertView.findViewById(R.id.movie_poster);
-        boolean isLandscape = getContext().getResources().getConfiguration().orientation
-                == Configuration.ORIENTATION_LANDSCAPE;
+        boolean isLandscape =
+                getContext().getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE;
         Pair<Integer, Integer> widthAndHeight = calculateWidthAndHeight(parent.getWidth(), isLandscape);
         Glide.with(getContext())
-                .load(NetworkEngine.API_IMAGE_URL + movie.posterPath)
+                .load(NetworkEngine.getApiImageUrl(getContext()) + movie.posterPath)
                 .centerCrop()
                 .override(widthAndHeight.first, widthAndHeight.second)
-//                .listener(new RequestListener<String, GlideDrawable>() {
-//                    @Override
-//                    public boolean onException(Exception e, String model, Target<GlideDrawable> target, boolean isFirstResource) {
-//                        android.util.Log.d("GLIDE", String.format(Locale.ROOT,
-//                                "onException(%s, %s, %s, %s)", e, model, target, isFirstResource), e);
-//                        return false;
-//                    }
-//
-//                    @Override
-//                    public boolean onResourceReady(GlideDrawable resource, String model, Target<GlideDrawable> target, boolean isFromMemoryCache, boolean isFirstResource) {
-//                        android.util.Log.d("GLIDE", String.format(Locale.ROOT,
-//                                "onResourceReady(%s, %s, %s, %s, %s)", resource, model, target, isFromMemoryCache, isFirstResource));
-//                        return false;
-//                    }
-//                })
-                .into(moviePoster);
+                .into(viewHolder.moviePoster);
 
         return convertView;
     }
 
+    /**
+     * Movie poster image always has a 2 / 3 ratio from TheMovieDB.
+     */
     private Pair<Integer, Integer> calculateWidthAndHeight(int parentWidth, boolean isLandscape) {
         int width;
         int height;
@@ -75,5 +68,10 @@ public class MovieGridAdapter extends ArrayAdapter<Movie> {
         }
         height = width / 2 * 3;
         return Pair.create(width, height);
+    }
+
+    class ViewHolder {
+
+        ImageView moviePoster;
     }
 }

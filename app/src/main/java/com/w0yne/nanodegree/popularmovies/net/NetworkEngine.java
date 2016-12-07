@@ -5,8 +5,15 @@
 
 package com.w0yne.nanodegree.popularmovies.net;
 
+import android.content.Context;
+
+import com.w0yne.nanodegree.popularmovies.R;
+import com.w0yne.nanodegree.popularmovies.model.ModelList;
 import com.w0yne.nanodegree.popularmovies.model.Movie;
-import com.w0yne.nanodegree.popularmovies.model.MovieList;
+import com.w0yne.nanodegree.popularmovies.model.Review;
+import com.w0yne.nanodegree.popularmovies.model.Trailer;
+
+import java.util.Locale;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -15,21 +22,34 @@ import retrofit2.Response;
 public class NetworkEngine {
 
     public static final String API_BASE_URL = "https://api.themoviedb.org/3/";
-    public static final String API_IMAGE_URL = "https://image.tmdb.org/t/p/w185";
+    public static final String API_IMAGE_URL = "https://image.tmdb.org/t/p/w%d";
 
     private static MovieDBClient movieDBClient =
             ServiceGenerator.createService(MovieDBClient.class, API_BASE_URL);
 
-    public static void getPopularMovies(final ResponseListener<MovieList> listener) {
+    public static void getPopularMovies(ResponseListener<ModelList<Movie>> listener) {
         movieDBClient.popularMovies().enqueue(new DefaultCallBack<>(listener));
     }
 
-    public static void getTopRatedMovies(ResponseListener<MovieList> listener) {
+    public static void getTopRatedMovies(ResponseListener<ModelList<Movie>> listener) {
         movieDBClient.topRatedMovies().enqueue(new DefaultCallBack<>(listener));
     }
 
-    public static void getMovie(int movieId, ResponseListener<Movie> listener) {
+    public static void getMovie(long movieId, ResponseListener<Movie> listener) {
         movieDBClient.movie(movieId).enqueue(new DefaultCallBack<>(listener));
+    }
+
+    public static void getTrailers(long movieId, ResponseListener<ModelList<Trailer>> listener) {
+        movieDBClient.trailers(movieId).enqueue(new DefaultCallBack<>(listener));
+    }
+
+    public static void getReviews(long movieId, ResponseListener<ModelList<Review>> listener) {
+        movieDBClient.reviews(movieId).enqueue(new DefaultCallBack<>(listener));
+    }
+
+    public static String getApiImageUrl(Context context) {
+        return String.format(Locale.US,
+                API_IMAGE_URL, (int) context.getResources().getDimension(R.dimen.movie_poster_size));
     }
 
     static class DefaultCallBack<T> implements Callback<T> {

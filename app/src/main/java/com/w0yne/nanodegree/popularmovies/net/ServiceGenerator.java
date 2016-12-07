@@ -7,8 +7,17 @@ package com.w0yne.nanodegree.popularmovies.net;
 
 import com.google.gson.FieldNamingPolicy;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonDeserializationContext;
+import com.google.gson.JsonDeserializer;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParseException;
+import com.w0yne.nanodegree.popularmovies.model.ModelList;
+import com.w0yne.nanodegree.popularmovies.model.Movie;
+import com.w0yne.nanodegree.popularmovies.model.Review;
+import com.w0yne.nanodegree.popularmovies.model.Trailer;
 
 import java.io.IOException;
+import java.lang.reflect.Type;
 
 import okhttp3.HttpUrl;
 import okhttp3.Interceptor;
@@ -21,7 +30,7 @@ import retrofit2.converter.gson.GsonConverterFactory;
 
 public class ServiceGenerator {
 
-    private static final String API_KEY = "{your_api_key™}";
+    private static final String API_KEY = "{your_api_key}";
 
     private static OkHttpClient sharedOkHttpClient;
 
@@ -51,7 +60,10 @@ public class ServiceGenerator {
 
         gsonBuilder =
                 new GsonBuilder()
-                        .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES);
+                        .setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
+                        .registerTypeAdapter(ModelList.getTypeForClass(Movie.class), new ModelListDeserializer<>())
+                        .registerTypeAdapter(ModelList.getTypeForClass(Trailer.class), new ModelListDeserializer<>())
+                        .registerTypeAdapter(ModelList.getTypeForClass(Review.class), new ModelListDeserializer<>());
         retrofitBuilder =
                 new Retrofit.Builder();
     }
@@ -67,5 +79,16 @@ public class ServiceGenerator {
 
     public static OkHttpClient getSharedOkHttpClient() {
         return sharedOkHttpClient;
+    }
+
+    @SuppressWarnings("unchecked")
+    public static class ModelListDeserializer<T> implements JsonDeserializer<ModelList<T>> {
+
+        @Override
+        public ModelList<T> deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
+            return new GsonBuilder().setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_UNDERSCORES)
+                    .create()
+                    .fromJson(json, typeOfT);
+        }
     }
 }
